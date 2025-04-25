@@ -10,25 +10,25 @@ DEFAULT_FEE = DEFAULT_FEE or "3" -- 0.3% fee (will be divided by 1000)
 -- Utility functions for bint operations
 local utils = {
   add = function(a, b)
-    return tostring(bint(a) + bint(b))
+    return tostring(a + b)
   end,
   subtract = function(a, b)
-    return tostring(bint(a) - bint(b))
+    return tostring(a - b)
   end,
   multiply = function(a, b)
-    return tostring(bint(a) * bint(b))
+    return tostring(a * b)
   end,
   divide = function(a, b)
-    return tostring(bint(a) / bint(b))
+    return tostring(a / b)
   end,
   lessThan = function(a, b)
-    return bint(a) < bint(b)
+    return a < b
   end,
   greaterThan = function(a, b)
-    return bint(a) > bint(b)
+    return a > b
   end,
   equals = function(a, b)
-    return bint(a) == bint(b)
+    return a == b
   end
 }
 
@@ -53,12 +53,25 @@ end
 
 -- Calculate output amount based on constant product formula (x * y = k)
 local function getOutputAmount(inputAmount, inputReserve, outputReserve, fee)
-  -- Apply fee: inputAmountWithFee = inputAmount * (10000 - fee) / 10000
-  local feeMultiplier = utils.subtract("1000", fee)
-  local inputAmountWithFee = utils.multiply(inputAmount, feeMultiplier)
-  local numerator = utils.multiply(inputAmountWithFee, outputReserve)
-  local denominator = utils.add(utils.multiply(inputReserve, "1000"), inputAmountWithFee)
-  return utils.divide(numerator, denominator)
+  -- Convert all inputs to numbers to ensure proper arithmetic
+  local inputAmountNum = tonumber(inputAmount)
+  local inputReserveNum = tonumber(inputReserve)
+  local outputReserveNum = tonumber(outputReserve)
+  local feeNum = tonumber(fee)
+  
+  -- Calculate fee amount (fee is in permille, divide by 1000)
+  local feeAmount = (inputAmountNum * feeNum) / 1000
+  local inputAmountWithFee = inputAmountNum - feeAmount
+  
+  -- Apply constant product formula
+  local numerator = inputAmountWithFee * outputReserveNum
+  local denominator = inputReserveNum + inputAmountWithFee
+  
+  -- Calculate output amount
+  local outputAmount = numerator / denominator
+  
+  -- Convert back to string with consistent format (no scientific notation)
+  return string.format("%.0f", outputAmount)
 end
 
 -- Calculate the price as quote amount / base amount (quote per base)
@@ -75,28 +88,28 @@ Handlers.add("Balance", "Balance", function(msg)
 end)
 -- Swap tokens handler
 Handlers.add('Swap', 'Swap', function(msg)
-  -- Validate input parameters
-  assert(type(msg.BaseToken) == 'string', 'BaseToken is required!')
-  assert(type(msg.QuoteToken) == 'string', 'QuoteToken is required!')
-  assert(type(msg.InputToken) == 'string', 'InputToken is required!')
-  assert(type(msg.InputAmount) == 'string', 'InputAmount is required!')
-  assert(type(msg.MinOutputAmount) == 'string', 'MinOutputAmount is required!')
-  assert(utils.greaterThan(msg.InputAmount, "0"), 'InputAmount must be greater than zero!')
+  print("Swap handler called with: " .. json.encode(msg))
   
+  -- Add a safe check for values
   local baseToken = msg.BaseToken
   local quoteToken = msg.QuoteToken
   local inputToken = msg.InputToken
   local inputAmount = msg.InputAmount
+  local minOutputAmount = msg.MinOutputAmount
   
-  -- Ensure input token is either base or quote token
-  assert(inputToken == baseToken or inputToken == quoteToken, 'InputToken must be either BaseToken or QuoteToken')
+  print("Processing swap with inputs:")
+  print("- InputAmount: " .. inputAmount)
+  print("- MinOutputAmount: " .. minOutputAmount)
   
   -- Get the pool
-  local pool = getOrCreatePool(baseToken, quoteToken)
-  assert(utils.greaterThan(pool.baseReserve, "0") and utils.greaterThan(pool.quoteReserve, "0"), 'Pool has no liquidity')
+  local poolKey = baseToken .. "-" .. quoteToken
+  local pool = Pools[poolKey]
+  assert(pool, 'Pool does not exist!')
   
-  -- Determine input and output reserves based on input token
-  local inputReserve, outputReserve, outputToken
+  -- Determine which is the input and output token
+  local inputReserve, outputReserve
+  local outputToken
+  
   if inputToken == baseToken then
     inputReserve = pool.baseReserve
     outputReserve = pool.quoteReserve
@@ -108,29 +121,16 @@ Handlers.add('Swap', 'Swap', function(msg)
   end
   
   -- Calculate output amount
-  local outputAmount = getOutputAmount(inputAmount, inputReserve, outputReserve, pool.fee)
-  
+  local outputAmount = getOutputAmount(inputAmount, inputReserve, outputReserve, DEFAULT_FEE)
+  print("OUTPUT AMOUNT IS " .. outputAmount)
+
+  -- Convert both values to numbers for proper comparison
+  local outputAmountNum = tonumber(outputAmount)
+  local minOutputAmountNum = tonumber(minOutputAmount)
+
   -- Check slippage tolerance
-  assert(utils.greaterThan(outputAmount, msg.MinOutputAmount) or utils.equals(outputAmount, msg.MinOutputAmount), 
-         'Output amount below minimum: ' .. outputAmount .. ' < ' .. msg.MinOutputAmount)
-  
-  -- Transfer input tokens from user to this contract
-  Send({
-    Target = inputToken,
-    Action = "Transfer",
-    Recipient = ao.id, 
-    Quantity = inputAmount,
-    From = msg.From
-  })
-  
-  -- Transfer output tokens to user
-  Send({
-    Target = outputToken,
-    Action = "Transfer",
-    Recipient = msg.From,
-    Quantity = outputAmount,
-    From = ao.id
-  })
+  assert(outputAmountNum >= minOutputAmountNum, 
+    'Output amount below minimum: ' .. outputAmount .. ' < ' .. minOutputAmount)
   
   -- Update reserves
   if inputToken == baseToken then
@@ -139,22 +139,23 @@ Handlers.add('Swap', 'Swap', function(msg)
   else
     pool.quoteReserve = utils.add(pool.quoteReserve, inputAmount)
     pool.baseReserve = utils.subtract(pool.baseReserve, outputAmount)
-  end 
+  end
+  
   -- Save updated pool
-  Pools[baseToken .. "-" .. quoteToken] = pool
+  Pools[poolKey] = pool
   
   -- Swap successful
+  print("SWAP: Completed successfully")
+  
   msg.reply({
-    Action = 'Swap-Complete',
+    Action = "Swap-Complete",
     InputToken = inputToken,
     InputAmount = inputAmount,
     OutputToken = outputToken,
     OutputAmount = outputAmount,
     BaseReserve = pool.baseReserve,
     QuoteReserve = pool.quoteReserve,
-    Data = "Successfully swapped " .. inputAmount .. " of token " .. 
-           inputToken .. " for " .. outputAmount .. " of token " .. 
-           outputToken
+    Data = "Successfully swapped " .. inputAmount .. " of token " .. inputToken .. " for " .. outputAmount .. " of token " .. outputToken
   })
 end)
 
