@@ -24,6 +24,16 @@ ArbitrageState = ArbitrageState or {
   totalProfit = "0000000000000"       -- Total profit earned (in Winston)
 }
 
+ArbitrageData = ArbitrageData or {
+  status = ArbitrageConfig.enabled and "Running" or "Stopped",
+  inputToken = ArbitrageConfig.inputToken,
+  targetToken = ArbitrageConfig.targetToken,
+  balance = ArbitrageState.balance,
+  totalProfit = ArbitrageState.totalProfit,
+  dexPrices = {},
+  lastOpportunity = nil
+}
+
 -- Utility functions for bint operations
 local utils = {
   add = function(a, b)
@@ -355,6 +365,7 @@ Handlers.add("CheckAndSwap", "CheckAndSwap", function(msg)
       Data = "Executed arbitrage successfully"
     })
   else
+    ArbitrageData.lastOpportunity = nil
     print("Potential profit below threshold. No arbitrage executed.")
   end
 end)
@@ -430,6 +441,11 @@ Handlers.add("getPrices", "getPrices", function(msg)
     print("Price from DEX " .. dexId .. ": " .. winstonPrice)
     -- Store the price in the prices table with dexId as the key
     prices[dexId] = winstonPrice
+    ArbitrageData.dexPrices[dexId] = {
+      price = priceResponse.Price,
+      baseReserve = priceResponse.BaseReserve,
+      quoteReserve = priceResponse.QuoteReserve
+    }
     
   end
   
@@ -533,6 +549,27 @@ Handlers.add('ProfitHistory', 'ProfitHistory', function(msg)
     TotalProfit = ArbitrageState.totalProfit,
     History = json.encode(ArbitrageState.profitHistory),
     Data = "Profit history retrieved"
+  })
+end)
+
+-- Get arbitrage data handler
+Handlers.add('GetArbitrageData', 'GetArbitrageData', function(msg)
+  -- Get the last opportunity if any
+  if #ArbitrageState.profitHistory > 0 then
+    local lastTrade = ArbitrageState.profitHistory[#ArbitrageState.profitHistory]
+    ArbitrageData.lastOpportunity = {
+      timestamp = lastTrade.timestamp,
+      inputAmount = lastTrade.inputAmount,
+      outputAmount = lastTrade.outputAmount,
+      profit = lastTrade.profit
+    }
+  else
+    ArbitrageData.lastOpportunity = nil
+  end
+
+  msg.reply({
+    Action = 'GetArbitrageData-Complete',
+    Data = ArbitrageData
   })
 end)
 
