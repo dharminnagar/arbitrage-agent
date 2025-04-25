@@ -455,7 +455,7 @@ export const ArbitragePage = () => {
                             {/* Display Profit over here */}
                             {botRunning && arbitrageData && (
                                 <div className="text-lg text-gray-500 font-bold">
-                                    Profit: {arbitrageData.find((item: string) => item.startsWith("Total Profit:"))?.split(": ")[1]}
+                                    Profit: {arbitrageData.totalProfit ? formatWinstonToAR(arbitrageData.totalProfit) : "0"} {getTokenSymbol(selectedInputToken)}
                                 </div>
                             )}
                     </div>
@@ -624,7 +624,7 @@ export const ArbitragePage = () => {
                         <div className="flex gap-4">
                             {isInitializing || statusLoading ? (
                                 <Button
-                                    className="flex-1 h-12 text-lg"
+                                    className="flex-1 h-12 text-lg !opacity-100" // Added !opacity-100 to force full opacity
                                     size="lg"
                                     disabled
                                 >
@@ -635,7 +635,7 @@ export const ArbitragePage = () => {
                                 </Button>
                             ) : !botRunning ? (
                                 <Button
-                                    className="flex-1 h-12 text-lg"
+                                    className="flex-1 h-12 text-lg !opacity-100" // Added !opacity-100 to force full opacity
                                     size="lg"
                                     onClick={handleStartArbitrage}
                                     disabled={isLoading || !connected}
@@ -652,7 +652,7 @@ export const ArbitragePage = () => {
                             ) : (
                                 <>
                                     <Button
-                                        className="flex-1 h-12 text-lg"
+                                        className="flex-1 h-12 text-lg !opacity-100" // Added !opacity-100 to force full opacity
                                         size="lg"
                                         variant="destructive"
                                         onClick={handleStopArbitrage}
