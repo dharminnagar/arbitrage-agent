@@ -50,8 +50,11 @@ export async function dryrunResult(userProcess: string, tags: { name: string; va
     const res = await dryrun({
       process: userProcess,
       tags,
-    }).then((res) => JSON.parse(res.Messages[0]?.Data || "[]"))
-  
+    }).then((res) => {
+      console.log(res);
+      return res.Messages[0] || "[]"
+    })
+    
     return res
   }
   

@@ -14,12 +14,20 @@ import { useEffect, useState } from "react";
 import { useConnection, useActiveAddress } from "arweave-wallet-kit";
 import { toast } from "sonner";
 import { Tokens } from "@/lib/config";
-import { dryrunResult, messageResult } from "@/lib/aoService";
+import { dryrunResult, messageResult, spawnProcess } from "@/lib/aoService";
 import { Loader2 } from "lucide-react";
+import { ArbitrageDetailsDialog } from "../ui/arbitrage-details-dialog";
 
 // The Arbitrage Agent Process ID
 // TODO: This should be moved to a config file
-const ARBITRAGE_AGENT_PID = "_jmonJXkCMYUL-Es7gRWJ7FfJtNW_8itCKRIQ89IXLs";
+const ARBITRAGE_AGENT_PID = "kwNZEi7nWEi0ckEkEHYwYNzO6TT7yhZ_EO8xxLMVoCg";
+
+const WINSTON_TO_AR = 1e12;
+
+const formatWinstonToAR = (winston: string | number) => {
+    const num = typeof winston === 'string' ? parseFloat(winston) : winston;
+    return (num / WINSTON_TO_AR).toFixed(6);
+};
 
 export const ArbitragePage = () => {
     const { connected } = useConnection();
@@ -31,6 +39,13 @@ export const ArbitragePage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [botRunning, setBotRunning] = useState(false);
     const [stopLoading, setStopLoading] = useState(false);
+    const [showDetails, setShowDetails] = useState(false);
+    const [arbitrageDetails, setArbitrageDetails] = useState<string[]>([]);
+    const [arbitrageData, setArbitrageData] = useState<any>(null);
+    const [lastOpportunity, setLastOpportunity] = useState<any>(null);
+    const [userProcessId, setUserProcessId] = useState<string | null>(null);
+    const [isInitializing, setIsInitializing] = useState(true);
+    const [statusLoading, setStatusLoading] = useState(false);
 
     useEffect(() => {
         if (!connected) {
@@ -40,34 +55,195 @@ export const ArbitragePage = () => {
         }
     }, [connected]);
 
-    // TODO: Will have to add this Handler to the process
-    // Check if arbitrage bot is running on component mount
+    // Initialize and check status on component mount
     useEffect(() => {
-        const checkBotStatus = async () => {
-            if (!connected || !address) return;
-            
+        const initializeArbitrage = async () => {
+            setStatusLoading(true);
+            toast("Fetching arbitrage data...");
+            if (!connected || !address) {
+                setIsInitializing(false);
+                setStatusLoading(false);
+                return;
+            }
+
             try {
-                const res = await dryrunResult(ARBITRAGE_AGENT_PID, [
+                // Use hardcoded process ID for user's process
+                const processId = "cO9aWJFex1k3SeL_2SyAwrvTLVzhm-ty7GJmrt56OKg";
+                setUserProcessId(processId);
+
+                // Check if bot is running
+                const statusRes = await dryrunResult(ARBITRAGE_AGENT_PID, [
                     { name: "Action", value: "Status" },
                 ]);
                 
-                if (res && res.Enabled === true) {
-                    setBotRunning(true);
+                console.log("Status Response:", statusRes);
+
+                // Handle the response format correctly
+                if (statusRes && statusRes.Tags) {
+                    const enabled = statusRes.Tags.find((tag: { name: string; }) => tag.name === "Enabled")?.value === true;
+                    console.log("Bot running status:", enabled);
+                    setBotRunning(enabled);
+                    
+                    if (enabled) {
+                        console.log("Bot is running");
+                        try {
+                            // Extract values from tags
+                            const tags = statusRes.Tags.reduce((acc: { [x: string]: any; }, tag: { name: string | number; value: any; }) => {
+                                acc[tag.name] = tag.value;
+                                return acc;
+                            }, {});
+                            
+                            // Format data for display
+                            const inputTokenSymbol = getTokenSymbol(tags.InputToken);
+                            const targetTokenSymbol = getTokenSymbol(tags.TargetToken);
+                            
+                            const details = [
+                                `Status: ${enabled ? "Running" : "Stopped"}`,
+                                `Input Token: ${inputTokenSymbol} (${tags.InputToken})`,
+                                `Target Token: ${targetTokenSymbol} (${tags.TargetToken})`,
+                                `Agent is still finding opportunities for you`,
+                            ];
+                            
+                            setArbitrageData(details);
+                        } catch (parseError) {
+                            console.error("Error parsing status data:", parseError);
+                            toast.error("Failed to parse status data");
+                        }
+                    }
                 } else {
+                    console.log("Bot status not available");
                     setBotRunning(false);
                 }
             } catch (error) {
-                console.error("Error checking bot status:", error);
-                setBotRunning(false);
+                console.error("Error initializing arbitrage:", error);
+                toast.error("Failed to initialize arbitrage process");
+            } finally {
+                setIsInitializing(false);
+                setStatusLoading(false);
             }
         };
+
+        initializeArbitrage();
+    }, [connected, address, selectedInputToken, selectedTargetToken]);
+
+    // Modified poll for arbitrage data when bot is running
+    // Now includes check for dialog open state
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
         
-        checkBotStatus();
-    }, [connected, address]);
+        const fetchArbitrageData = async () => {
+            // Don't fetch if not connected, no address, bot not running, or details dialog is open
+            if (!connected || !address || !botRunning || showDetails) return;
+            
+            try {
+                const res = await dryrunResult(ARBITRAGE_AGENT_PID, [
+                    { name: "Action", value: "GetArbitrageData" },
+                ]);
+
+                console.log("Arbitrage Data Response:", res);
+                
+                if (res && res.Data) {
+                    let data;
+                    try {
+                        data = JSON.parse(res.Data);
+                        console.log("Parsed Arbitrage Data:", data);
+                    } catch (error) {
+                        console.error("Error parsing response data:", error);
+                        return;
+                    }
+                    
+                    // Initialize details array with basic information
+                    let details = [
+                        `Status: ${data.status || "Running"}`,
+                        `Input Token: ${getTokenSymbol(data.inputToken)}`,
+                        `Target Token: ${getTokenSymbol(data.targetToken)}`
+                    ];
+                    
+                    // Add balance and profit information if available
+                    if (data.balance) {
+                        details.push(`Current Balance: ${formatWinstonToAR(data.balance)} ${getTokenSymbol(data.inputToken)}`);
+                    }
+                    
+                    if (data.totalProfit) {
+                        details.push(`Total Profit: ${formatWinstonToAR(data.totalProfit)} ${getTokenSymbol(data.inputToken)}`);
+                    }
+                    
+                    // Add configuration information if available
+                    if (data.slippage) {
+                        details.push(`Slippage: ${formatWinstonToAR(data.slippage)}%`);
+                    }
+                    
+                    if (data.minProfitThreshold) {
+                        details.push(`Min Profit Threshold: ${formatWinstonToAR(data.minProfitThreshold)}%`);
+                    }
+                    
+                    if (data.dexCount) {
+                        details.push(`DEX Count: ${data.dexCount}`);
+                    }
+                    
+                    // Handle lastOpportunity data
+                    if (data.lastOpportunity) {
+                        const lo = data.lastOpportunity;
+                        details.push(
+                            `Last Opportunity at: ${new Date(lo.timestamp * 1000).toLocaleString()}`,
+                            `Input Amount: ${formatWinstonToAR(lo.inputAmount)} ${getTokenSymbol(data.inputToken)}`,
+                            `Output Amount: ${formatWinstonToAR(lo.outputAmount)} ${getTokenSymbol(data.inputToken)}`,
+                            `Profit: ${formatWinstonToAR(lo.profit)} ${getTokenSymbol(data.inputToken)}`
+                        );
+                        
+                        // If we have DEX information, add it
+                        if (lo.buyDex && lo.sellDex) {
+                            details.push(`Buy DEX: ${lo.buyDex.substring(0, 8)}...`, `Sell DEX: ${lo.sellDex.substring(0, 8)}...`);
+                        }
+                        
+                        // Notify only if this is a new opportunity
+                        if (!lastOpportunity || lo.timestamp > lastOpportunity.timestamp) {
+                            setLastOpportunity(lo);
+                            toast.success("New arbitrage opportunity found!");
+                        }
+                    } else {
+                        // No last opportunity available
+                        details.push("Agent is still finding opportunities for you");
+                    }
+                    
+                    // Add DEX prices information if available
+                    if (data.dexPrices && Object.keys(data.dexPrices).length > 0) {
+                        details.push("DEX Prices:");
+                        Object.entries(data.dexPrices).forEach(([dexId, priceInfo]: [string, any], index) => {
+                            details.push(`  Dex${index + 1}: ${priceInfo.price}`);
+                        });
+                    }
+                    
+                    setArbitrageData(details);
+                }
+            } catch (error) {
+                console.error("Error fetching arbitrage data:", error);
+            }
+        };
+
+        if (botRunning && !showDetails) {
+            fetchArbitrageData();
+            interval = setInterval(fetchArbitrageData, 5000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [connected, address, botRunning, lastOpportunity, showDetails]); // Added showDetails dependency
+
+    const getTokenSymbol = (address: string) => {
+        const token = Object.values(Tokens).find(t => t.address === address);
+        return token?.symbol || "AR";
+    };
 
     async function handleStartArbitrage() {
         if (!connected || !address) {
             toast.error("Please connect your wallet first");
+            return;
+        }
+
+        if (!userProcessId) {
+            toast.error("User process ID not initialized");
             return;
         }
 
@@ -82,6 +258,8 @@ export const ArbitragePage = () => {
         }
 
         setIsLoading(true);
+        setMaxAllowance(maxAllowance * 1e12);
+        console.log(maxAllowance);
         try {
             // Step 1: Setup the arbitrage agent with user inputs
             const setupRes = await messageResult(ARBITRAGE_AGENT_PID, [
@@ -90,23 +268,38 @@ export const ArbitragePage = () => {
                 { name: "TargetToken", value: selectedTargetToken },
                 { name: "Slippage", value: slippageTolerance },
                 { name: "InputTokenAmount", value: maxAllowance.toString() },
-                { name: "OriginalSender", value: address }
+                { name: "OriginalSender", value: userProcessId },
+                { name: "MinProfitThreshold", value: "100000000000" },  // Example threshold
             ]);
 
             if (setupRes.Error) {
                 throw new Error("Setup failed: " + setupRes.Error);
             }
+
+            const startArbitrageRes = await messageResult(ARBITRAGE_AGENT_PID, [
+                { name: "Action", value: "Start" },
+                { name: "inputToken", value: selectedInputToken },
+                { name: "targetToken", value: selectedTargetToken },
+            ])
+
+            if(startArbitrageRes.Error) {
+                throw new Error("Failed to start arbitrage: " + startArbitrageRes.Error);
+            }
+            console.log("Setup Response:", setupRes);
+            console.log("Start Arbitrage Response:", startArbitrageRes);
             
-            toast.success("Arbitrage bot setup complete!");
             
             // Step 2: Add DEX processes (assuming they're already configured in the agent)
             // This step would be here if DEXes needed to be manually added
             
             // Step 3: Start the arbitrage bot
-            const startRes = await messageResult(ARBITRAGE_AGENT_PID, [
+            const startRes = await messageResult(userProcessId, [
                 { name: "Action", value: "Start" },
+                { name: "Target", value: ARBITRAGE_AGENT_PID }  // Specify the target agent process
             ]);
-
+            
+            toast.success("Arbitrage bot setup complete!");
+            
             if (startRes.Error) {
                 throw new Error("Failed to start bot: " + startRes.Error);
             }
@@ -125,6 +318,11 @@ export const ArbitragePage = () => {
     async function handleStopArbitrage() {
         if (!connected || !address) {
             toast.error("Please connect your wallet first");
+            return;
+        }
+
+        if (!userProcessId) {
+            toast.error("User process ID not initialized");
             return;
         }
 
@@ -149,6 +347,101 @@ export const ArbitragePage = () => {
         }
     }
 
+    // Also add a handler to fetch fresh data when the dialog is closed
+    const handleCloseDetailsDialog = () => {
+        setShowDetails(false);
+        
+        // Immediately fetch fresh data when closing the dialog
+        if (connected && address && botRunning) {
+            const fetchData = async () => {
+                try {
+                    const res = await dryrunResult(ARBITRAGE_AGENT_PID, [
+                        { name: "Action", value: "GetArbitrageData" },
+                    ]);
+                    
+                    // Process the response (reusing the same logic)
+                    if (res && res.Data) {
+                        let data;
+                        try {
+                            data = JSON.parse(res.Data);
+                        } catch (error) {
+                            console.error("Error parsing response data:", error);
+                            return;
+                        }
+                        
+                        // Build details array (same logic as in fetchArbitrageData)
+                        let details = [
+                            `Status: ${data.status || "Running"}`,
+                            `Input Token: ${getTokenSymbol(data.inputToken)}`,
+                            `Target Token: ${getTokenSymbol(data.targetToken)}`
+                        ];
+                        
+                        // Add balance and profit information if available
+                        if (data.balance) {
+                            details.push(`Current Balance: ${formatWinstonToAR(data.balance)} ${getTokenSymbol(data.inputToken)}`);
+                        }
+                        
+                        if (data.totalProfit) {
+                            details.push(`Total Profit: ${formatWinstonToAR(data.totalProfit)} ${getTokenSymbol(data.inputToken)}`);
+                        }
+                        
+                        // Add configuration information if available
+                        if (data.slippage) {
+                            details.push(`Slippage: ${formatWinstonToAR(data.slippage)}%`);
+                        }
+                        
+                        if (data.minProfitThreshold) {
+                            details.push(`Min Profit Threshold: ${formatWinstonToAR(data.minProfitThreshold)}%`);
+                        }
+                        
+                        if (data.dexCount) {
+                            details.push(`DEX Count: ${data.dexCount}`);
+                        }
+                        
+                        // Handle lastOpportunity data
+                        if (data.lastOpportunity) {
+                            const lo = data.lastOpportunity;
+                            details.push(
+                                `Last Opportunity at: ${new Date(lo.timestamp * 1000).toLocaleString()}`,
+                                `Input Amount: ${formatWinstonToAR(lo.inputAmount)} ${getTokenSymbol(data.inputToken)}`,
+                                `Output Amount: ${formatWinstonToAR(lo.outputAmount)} ${getTokenSymbol(data.inputToken)}`,
+                                `Profit: ${formatWinstonToAR(lo.profit)} ${getTokenSymbol(data.inputToken)}`
+                            );
+                            
+                            // If we have DEX information, add it
+                            if (lo.buyDex && lo.sellDex) {
+                                details.push(`Buy DEX: ${lo.buyDex.substring(0, 8)}...`, `Sell DEX: ${lo.sellDex.substring(0, 8)}...`);
+                            }
+                            
+                            // Notify only if this is a new opportunity
+                            if (!lastOpportunity || lo.timestamp > lastOpportunity.timestamp) {
+                                setLastOpportunity(lo);
+                                toast.success("New arbitrage opportunity found!");
+                            }
+                        } else {
+                            // No last opportunity available
+                            details.push("Agent is still finding opportunities for you");
+                        }
+                        
+                        // Add DEX prices information if available
+                        if (data.dexPrices && Object.keys(data.dexPrices).length > 0) {
+                            details.push("DEX Prices:");
+                            Object.entries(data.dexPrices).forEach(([dexId, priceInfo]: [string, any]) => {
+                                details.push(`  ${dexId.substring(0, 8)}...: ${priceInfo.price}`);
+                            });
+                        }
+                        
+                        setArbitrageData(details);
+                    }
+                } catch (error) {
+                    console.error("Error fetching data after dialog close:", error);
+                }
+            };
+            
+            fetchData();
+        }
+    };
+
     return (
         <div className="flex flex-col items-center justify-center w-full h-[70vh]">
             <Card className="w-[58vw] h-[52vh] rounded-none bg-[white]/80 backdrop-blur-md border-gray-800">
@@ -157,7 +450,14 @@ export const ArbitragePage = () => {
                         <CardTitle className="text-2xl mb-1">Arbitrage Bot</CardTitle>
                         <CardDescription className="text-xl">
                             Set up your automated arbitrage strategy
+
                         </CardDescription>
+                            {/* Display Profit over here */}
+                            {botRunning && arbitrageData && (
+                                <div className="text-lg text-gray-500 font-bold">
+                                    Profit: {arbitrageData.find((item: string) => item.startsWith("Total Profit:"))?.split(": ")[1]}
+                                </div>
+                            )}
                     </div>
 
                     <Separator />
@@ -321,43 +621,71 @@ export const ArbitragePage = () => {
 
                         <Separator />
 
-                        {!botRunning ? (
-                            <Button
-                                className="w-full h-12 text-lg"
-                                size="lg"
-                                onClick={handleStartArbitrage}
-                                disabled={isLoading || !connected}
-                            >
-                                {isLoading ? (
+                        <div className="flex gap-4">
+                            {isInitializing || statusLoading ? (
+                                <Button
+                                    className="flex-1 h-12 text-lg"
+                                    size="lg"
+                                    disabled
+                                >
                                     <div className="flex items-center gap-2">
                                         <Loader2 className="h-5 w-5 animate-spin" />
-                                        Starting Bot...
+                                        {isInitializing ? "Initializing..." : "Checking Status..."}
                                     </div>
-                                ) : (
-                                    "Start Arbitrage Bot"
-                                )}
-                            </Button>
-                        ) : (
-                            <Button
-                                className="w-full h-12 text-lg"
-                                size="lg"
-                                variant="destructive"
-                                onClick={handleStopArbitrage}
-                                disabled={stopLoading || !connected}
-                            >
-                                {stopLoading ? (
-                                    <div className="flex items-center gap-2">
-                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                        Stopping Bot...
-                                    </div>
-                                ) : (
-                                    "Stop Arbitrage Bot"
-                                )}
-                            </Button>
-                        )}
+                                </Button>
+                            ) : !botRunning ? (
+                                <Button
+                                    className="flex-1 h-12 text-lg"
+                                    size="lg"
+                                    onClick={handleStartArbitrage}
+                                    disabled={isLoading || !connected}
+                                >
+                                    {isLoading ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                            Starting Bot...
+                                        </div>
+                                    ) : (
+                                        "Start Arbitrage Bot"
+                                    )}
+                                </Button>
+                            ) : (
+                                <>
+                                    <Button
+                                        className="flex-1 h-12 text-lg"
+                                        size="lg"
+                                        variant="destructive"
+                                        onClick={handleStopArbitrage}
+                                        disabled={stopLoading || !connected}
+                                    >
+                                        {stopLoading ? (
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                                Stopping Bot...
+                                            </div>
+                                        ) : (
+                                            "Stop Arbitrage Bot"
+                                        )}
+                                    </Button>
+                                    <Button
+                                        className="flex-1 h-12 text-lg"
+                                        size="lg"
+                                        variant="outline"
+                                        onClick={() => setShowDetails(true)}
+                                    >
+                                        View Details
+                                    </Button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
+            <ArbitrageDetailsDialog
+                isOpen={showDetails}
+                onClose={handleCloseDetailsDialog}  // Use the new handler
+                details={arbitrageData}
+            />
         </div>
     );
 };

@@ -9,17 +9,12 @@ export type Token = {
 export const Tokens: Record<string, Token> = {
     STAR1: {
         name: "STAR1",
-        address: "lvfxYbBRqmWpNWcMaor7aEIA4_CiOQCfLnT2ymzDX84",
+        address: "T57pzUiE2jbkgRPgmW9bugDz75F8gPiFq_iqUBDYdJg",
         symbol: "STAR1",
     },
     STAR2: {
         name: "STAR2",
-        address: "Yv5NjWA1zCFNNSksDc6yNUC3pdaMh6jNHCKUPIUhdWE",
+        address: "KRGomAeGRC4m9QJlP2LsulmwyVuYPE0mfsTR2B8m-Ro",
         symbol: "STAR2",
-    },
-    STAR3: {
-        name: "STAR3",
-        address: "R7CR9GicDSk1_PAzXP0kwbSyrgBzWBeOg",
-        symbol: "STAR3",
-    },
+    }
 }
