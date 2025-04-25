@@ -33,7 +33,7 @@ export const ArbitrageDetailsDialog = ({ isOpen, onClose, details }: ArbitrageDe
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-3xl h-[600px] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Arbitrage Details</DialogTitle>
+                    <DialogTitle className="underline underline-offset-4">Arbitrage Details</DialogTitle>
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto pr-4">
                     <div className="space-y-2 font-mono text-sm">
