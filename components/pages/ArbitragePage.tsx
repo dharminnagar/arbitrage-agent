@@ -447,7 +447,7 @@ export const ArbitragePage = () => {
             <Card className="w-[58vw] h-[52vh] rounded-none bg-[white]/80 backdrop-blur-md border-gray-800">
                 <CardContent className="p-6 space-y-6">
                     <div>
-                        <CardTitle className="text-2xl mb-1">Arbitrage Bot</CardTitle>
+                        <CardTitle className="text-2xl mb-1">DeltaFi</CardTitle>
                         <CardDescription className="text-xl">
                             Set up your automated arbitrage strategy
 

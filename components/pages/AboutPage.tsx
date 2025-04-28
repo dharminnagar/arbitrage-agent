@@ -10,16 +10,19 @@ export const AboutPage = () => {
                 <CardContent className="p-8 space-y-8">
                     {/* Project Information Section */}
                     <div className="space-y-4">
-                        <CardTitle className="text-5xl text-center">About InvestAr</CardTitle>
+                        <CardTitle className="text-5xl text-center">About DeltaFi</CardTitle>
                         <CardDescription className="text-lg">
-                            A decentralized investment platform built on the Arweave network, enabling automated and transparent investment strategies.
+                            An autonomous arbitrage bot built on the ao protocol that monitors multiple DEXes on Arweave for profitable trading opportunities.
                         </CardDescription>
                         <div className="prose prose-lg max-w-none">
                             <p>
-                                Our platform leverages the power of <span className="font-bold">Arweave</span>&apos;s permanent and decentralized storage capabilities. It is an autonomous decentralized investment solution where users can plan their investment strategies while maintaining full control over their assets.
+                                Our platform leverages the power of <span className="font-bold">ao protocol</span> to create an autonomous agent that constantly monitors price differences between DEXes in the Arweave ecosystem.
                             </p>
                             <p>
-                                We have currently implemented the dollar cost averaging strategy for the users to invest in the <span className="underline">STAR</span> token, a custom token we made for this project.
+                                When DeltaFi detects a profitable trading opportunity where a token is priced differently across exchanges, it automatically executes trades to capture the profit. This is done by buying at the lower price on one DEX and selling at the higher price on another.
+                            </p>
+                            <p>
+                                The agent is fully configurable, allowing you to set parameters like slippage tolerance, minimum profit thresholds, and specific token pairs to monitor. All profits are tracked and reported in real-time on the dashboard.
                             </p>
                         </div>
                     </div>

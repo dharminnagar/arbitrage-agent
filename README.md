@@ -1,17 +1,17 @@
-# InvestAr - Autonomous Investment Agent
+# DeltaFi - Autonomous Trading Bot
 
-InvestAr is a decentralized investment platform built on the Arweave network, enabling automated and transparent investment strategies. The platform leverages Arweave's permanent and decentralized storage capabilities to provide users with autonomous investment solutions while maintaining full control over their assets.
+DeltaFi is an autonomous trading bot built on the ao protocol that monitors multiple DEXes on Arweave for profitable trading opportunities. The platform automatically executes trades when it detects price differences between exchanges, capturing profit without manual intervention.
 
-![InvestAr Website](public/website.png)
+![DeltaFi Website](public/website.png)
 
 ## Features
 
-- **Automated Investment Strategies**: Currently implements dollar cost averaging (DCA) for STAR tokens
-- **Decentralized Control**: Built on Arweave network ensuring transparency and user control
-- **User-Friendly Interface**: Modern UI with intuitive portfolio management
-- **Token Management**: Mint and manage STAR tokens for testing investment strategies
-- **Real-Time Portfolio Tracking**: Monitor your investments and returns
-- **Recurring Investments**: Set up automated investments on specific days of the month
+- **Automated Arbitrage**: Constantly monitors DEXes for price discrepancies
+- **Cross-DEX Trading**: Executes trades across different exchanges to capture profit
+- **Configurable Parameters**: Set slippage tolerance and minimum profit thresholds
+- **Token Pair Selection**: Choose which token pairs to monitor
+- **Real-Time Profit Tracking**: Monitor your arbitrage profits and execution history
+- **DEX Integration**: Works with multiple Arweave-based decentralized exchanges
 
 ## Tech Stack
 
@@ -33,8 +33,8 @@ InvestAr is a decentralized investment platform built on the Arweave network, en
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/dharminnagar/autonomous-investment-agent.git
-cd autonomous-investment-agent
+git clone https://github.com/dharminnagar/deltafi.git
+cd deltafi
 ```
 
 2. Install dependencies:
@@ -51,28 +51,30 @@ npm run dev
 
 ### Environment Setup
 
-No additional environment variables are required for basic setup. The application uses default Arweave testnet configurations.
+No additional environment variables are required for basic setup. The application uses default Arweave configurations.
 
 ## Usage
 
 1. **Connect Wallet**: Use the connect button in the header to link your Arweave wallet
-2. **Mint Tokens**: Navigate to the Mint page to get test STAR tokens
-3. **Create Investment**: Set up your investment strategy with:
-   - Input/Output tokens
-   - Investment amount
-   - Recurring day of the month
-4. **Monitor Portfolio**: Track your investments and returns in the Portfolio section
+2. **Configure Bot**: Set up your arbitrage strategy with:
+   - Input/Target tokens
+   - Maximum allowance amount
+   - Slippage tolerance
+3. **Start Bot**: Click "Start Arbitrage Bot" to begin monitoring DEXes
+4. **Monitor Profits**: View details of arbitrage executions and profits in real-time 
+5. **Stop Bot**: Click "Stop Arbitrage Bot" when you want to pause operations
 
 ## Project Structure
 
 ```
-autonomous-investment-agent/
-├── app/                    # Next.js app directory
+deltafi/
+├── app/                   # Next.js app directory
 ├── components/            # React components
 ├── lib/                   # Utility functions and configurations
-├── lua/                   # Smart contract code
-├── public/               # Static assets
-└── styles/               # Global styles
+├── lua/                   # Arbitrage agent Lua code
+│   └── ArbitrageAgent/    # Core agent logic
+├── public/                # Static assets
+└── styles/                # Global styles
 ```
 
 ## Contributing
