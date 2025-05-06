@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 import { Separator } from "@/components/ui/separator";
 import { mainProcessId } from "@/lib/config";
 import { dryrunResult, messageResult } from "@/lib/aoService";
-import { Loader2, PlusCircle } from "lucide-react";
+import { CalendarIcon, Loader2, PlusCircle, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
@@ -57,73 +57,84 @@ const InvestmentPlansDialog = ({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>Investment Plans</DialogTitle>
-                    <DialogDescription>
-                        View all your active investment plans
+            <DialogContent className="max-w-2xl bg-white rounded-xl border-0 shadow-xl">
+                <DialogHeader className="pb-2 border-b border-gray-100">
+                    <DialogTitle className="text-2xl font-semibold text-gray-800">Investment Plans</DialogTitle>
+                    <DialogDescription className="text-gray-500">
+                        View and manage your active investment plans
                     </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                    {investments.map((investment, index) => {
-                        const nextDate = getNextInvestmentDate(investment.RecurringDay);
-                        // Convert to number for consistent comparison
-                        const activeValue = investment.Active === true ? 1 : Number(investment.Active || 0);
-                        const isCancelled = activeValue !== 1;
-                        
-                        return (
-                            <div key={index} className={`flex items-center justify-between p-4 border rounded-lg ${isCancelled ? 'bg-gray-100' : ''}`}>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-8 h-8 rounded-full ${isCancelled ? 'bg-gray-400' : 'bg-blue-500'} flex items-center justify-center`}>
-                                            <span className="text-white font-bold">$</span>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium flex items-center gap-2">
-                                                {getTokenSymbol(investment.InputTokenAddress)} → {getTokenSymbol(investment.OutputTokenAddress)}
-                                                {isCancelled && (
-                                                    <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">
-                                                        Cancelled
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {Number(investment.Amount || 0).toFixed(2)} tokens
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                ID: {investment.ID}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <div className="text-right">
-                                        <div className="font-medium">Next Investment</div>
-                                        <div className="text-sm text-gray-500">
-                                            {isCancelled ? 'N/A' : nextDate.toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                    {!isCancelled && (
-                                        <Button 
-                                            variant="destructive" 
-                                            size="sm"
-                                            onClick={() => onCancelInvestment(investment.ID)}
-                                            disabled={cancelLoading === investment.ID}
-                                        >
-                                            {cancelLoading === investment.ID ? (
-                                                <>
-                                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                                    Cancelling...
-                                                </>
-                                            ) : (
-                                                'Cancel'
-                                            )}
-                                        </Button>
-                                    )}
-                                </div>
+                <div className="space-y-4 pt-2">
+                    {investments.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                            <div className="rounded-full bg-gray-100 p-4 mb-4">
+                                <CalendarIcon className="h-8 w-8 text-gray-400" />
                             </div>
-                        );
-                    })}
+                            <p className="text-gray-600 mb-2">No investment plans found</p>
+                            <p className="text-sm text-gray-500">Create a new investment to get started</p>
+                        </div>
+                    ) : (
+                        investments.map((investment, index) => {
+                            const nextDate = getNextInvestmentDate(investment.RecurringDay);
+                            // Convert to number for consistent comparison
+                            const activeValue = investment.Active === true ? 1 : Number(investment.Active || 0);
+                            const isCancelled = activeValue !== 1;
+                            
+                            return (
+                                <div key={index} className={`flex items-center justify-between p-4 border ${isCancelled ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'} rounded-xl shadow-sm transition-all duration-200 hover:shadow-md`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-10 h-10 rounded-full ${isCancelled ? 'bg-gray-300' : 'bg-gradient-to-r from-blue-500 to-blue-600'} flex items-center justify-center shadow-sm`}>
+                                                <span className="text-white font-bold">{getTokenSymbol(investment.InputTokenAddress).charAt(0)}</span>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium flex items-center gap-2 text-gray-800">
+                                                    {getTokenSymbol(investment.InputTokenAddress)} → {getTokenSymbol(investment.OutputTokenAddress)}
+                                                    {isCancelled && (
+                                                        <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">
+                                                            Cancelled
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {Number(investment.Amount || 0).toFixed(2)} tokens
+                                                </div>
+                                                <div className="text-xs text-gray-400">
+                                                    ID: {investment.ID}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className="text-right">
+                                            <div className="font-medium text-sm text-gray-600">Next Investment</div>
+                                            <div className="text-sm font-semibold text-gray-800">
+                                                {isCancelled ? 'N/A' : nextDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </div>
+                                        </div>
+                                        {!isCancelled && (
+                                            <Button 
+                                                variant="destructive" 
+                                                size="sm"
+                                                onClick={() => onCancelInvestment(investment.ID)}
+                                                disabled={cancelLoading === investment.ID}
+                                                className="bg-red-500 hover:bg-red-600 text-xs px-3 py-1 h-auto"
+                                            >
+                                                {cancelLoading === investment.ID ? (
+                                                    <>
+                                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                        Cancelling...
+                                                    </>
+                                                ) : (
+                                                    'Cancel'
+                                                )}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
@@ -229,73 +240,85 @@ export const PortfolioPage = () => {
 
     const LoadingSpinner = () => (
         <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </div>
     );
 
     return (
-        <div className="flex flex-col items-center justify-center w-full h-[70vh]">
-            <Card className="w-[58vw] h-[52vh] rounded-none bg-[white]/80 backdrop-blur-md border-gray-800">
-                <CardContent className="p-6 space-y-6">
-                    <div className="flex justify-between items-start">
+        <div className="flex flex-col items-center justify-center w-full py-16 px-8">
+            <Card className="w-full max-w-6xl rounded-xl bg-white border border-neutral-200 shadow-lg overflow-hidden">
+                <CardContent className="p-8 space-y-6">
+                    <div className="flex justify-between items-center">
                         <div>
-                            <CardTitle className="text-2xl mb-1">Portfolio Overview</CardTitle>
-                            <CardDescription className="text-xl">
+                            <CardTitle className="text-3xl mb-1 text-gray-800 font-bold">Portfolio Overview</CardTitle>
+                            <CardDescription className="text-lg text-gray-500">
                                 Your Investment Statistics
                             </CardDescription>
                         </div>
                         <Link href="/invest">
-                            <Button className="flex items-center gap-2">
+                            <Button className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all shadow-md hover:shadow-lg">
                                 <PlusCircle className="h-4 w-4" />
                                 New Investment
                             </Button>
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <h3 className="text-sm font-medium text-gray-500">Total Invested</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 shadow-sm">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="rounded-full bg-blue-100 p-2">
+                                        <TrendingUp className="h-5 w-5 text-blue-600" />
+                                    </div>
+                                    <h3 className="font-medium text-gray-800">Total Invested</h3>
+                                </div>
                                 <div className="flex items-baseline gap-2">
                                     {loading ? (
                                         <LoadingSpinner />
                                     ) : (
                                         <>
-                                            <span className="text-3xl font-bold">{totalInvested}</span>
-                                            <span className="text-lg text-gray-600">AR</span>
+                                            <span className="text-3xl font-bold text-gray-800">{totalInvested}</span>
+                                            <span className="text-lg text-gray-600 font-medium">AR</span>
                                         </>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <h3 className="text-sm font-medium text-gray-500">Total Returns</h3>
+                            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 shadow-sm">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="rounded-full bg-green-100 p-2">
+                                        <TrendingUp className="h-5 w-5 text-green-600" />
+                                    </div>
+                                    <h3 className="font-medium text-gray-800">Total Returns</h3>
+                                </div>
                                 <div className="flex items-baseline gap-2">
                                     {loading ? (
                                         <LoadingSpinner />
                                     ) : (
                                         <>
                                             <span className="text-3xl font-bold text-green-600">+{totalReturns}</span>
-                                            <span className="text-lg text-gray-600">AR</span>
+                                            <span className="text-lg text-gray-600 font-medium">AR</span>
                                         </>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <h3 className="text-sm font-medium text-gray-500">Active Investments</h3>
-                                <div className="flex items-baseline gap-2">
+                        <div className="space-y-6">
+                            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 shadow-sm">
+                                <h3 className="font-medium text-gray-800 mb-4">Active Investments</h3>
+                                <div className="flex items-baseline justify-between">
                                     {loading ? (
                                         <LoadingSpinner />
                                     ) : (
                                         <>
-                                            <span className="text-3xl font-bold">{activeInvestments}</span>
-                                            <span className="text-lg text-gray-600">positions</span>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-3xl font-bold text-gray-800">{activeInvestments}</span>
+                                                <span className="text-lg text-gray-600 font-medium">positions</span>
+                                            </div>
                                             <Button 
                                                 variant="link" 
-                                                className="text-sm text-black"
+                                                className="text-sm text-blue-600 hover:text-blue-700"
                                                 onClick={() => setDialogOpen(true)}
                                             >
                                                 View All
@@ -305,47 +328,39 @@ export const PortfolioPage = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <h3 className="text-sm font-medium text-gray-500">Next Investment Date</h3>
-                                <div className="text-3xl font-bold">
+                            <div className="bg-gradient-to-r from-blue-50 to-gray-50 rounded-xl p-6 shadow-sm">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="rounded-full bg-blue-100 p-2">
+                                        <CalendarIcon className="h-5 w-5 text-blue-600" />
+                                    </div>
+                                    <h3 className="font-medium text-gray-800">Next Investment Date</h3>
+                                </div>
+                                <div className="text-3xl font-bold text-gray-800">
                                     {loading ? (
                                         <LoadingSpinner />
                                     ) : (
-                                        nextInvestmentDate ? nextInvestmentDate.getDate() : '-'
+                                        nextInvestmentDate ? (
+                                            <div className="flex flex-col">
+                                                <span className="text-3xl">{nextInvestmentDate.getDate()}</span>
+                                                <span className="text-xs text-gray-500">
+                                                    {nextInvestmentDate.toLocaleString('default', { month: 'short' })} {nextInvestmentDate.getFullYear()}
+                                                </span>
+                                            </div>
+                                        ) : '-'
                                     )}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <Separator />
+                    <Separator className="my-2" />
                     
-
-                    {/* This is just for the current implementation, as the process is under development */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-gray-500">Recent Activity</h3>
-                        {/* <div className="space-y-2">
-                            {loading ? (
-                                <div className="flex justify-center py-4">
-                                    <LoadingSpinner />
-                                </div>
-                            ) : (
-                                <div className="flex justify-between items-center py-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                                            <span className="text-white font-bold">$</span>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium">STAR1 → STAR2</div>
-                                            <div className="text-sm text-gray-500">Today</div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="font-medium">5.00 STAR1</div>
-                                    </div>
-                                </div>
-                            )}
-                        </div> */}
+                        <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <div className="h-1 w-1 rounded-full bg-blue-500"></div>
+                            Recent Activity
+                        </h3>
+                        {/* Activity section placeholder */}
                     </div>
                 </CardContent>
             </Card>
