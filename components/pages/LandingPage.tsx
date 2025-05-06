@@ -49,14 +49,6 @@ export const LandingPage = () => {
                                 <ArrowRight className="ml-2" />
                             </Button>
                         </Link>
-                        <Link href="/portfolio">
-                            <Button 
-                                variant="outline"
-                                className="px-6 py-6 text-base bg-white hover:bg-gray-50 border-gray-300 transition-all duration-300"
-                            >
-                                View Portfolio
-                            </Button>
-                        </Link>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
