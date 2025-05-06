@@ -16,7 +16,7 @@ export const AboutPage = () => {
                         <div className="text-center space-y-3">
                             <CardTitle className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-green-500 bg-clip-text text-transparent">About DeltaFi</CardTitle>
                             <CardDescription className="text-xl text-gray-600 font-light">
-                                An autonomous arbitrage bot built on the ao protocol that monitors multiple DEXes on Arweave for profitable trading opportunities
+                                An autonomous arbitrage bot built on the AO protocol that monitors multiple DEXes on Arweave for profitable trading opportunities
                             </CardDescription>
                         </div>
                         
@@ -26,9 +26,9 @@ export const AboutPage = () => {
                                     <div className="rounded-full bg-blue-100 p-4 mb-4">
                                         <Code className="h-6 w-6 text-blue-600" />
                                     </div>
-                                    <h3 className="text-xl font-semibold text-center text-gray-800 mb-3">Powered by ao</h3>
+                                    <h3 className="text-xl font-semibold text-center text-gray-800 mb-3">Powered by AO</h3>
                                     <p className="text-center text-gray-600 text-sm">
-                                        Our platform leverages the power of <span className="font-bold">ao protocol</span> to create autonomous agents that monitor price differences between DEXes in real-time.
+                                        Our platform leverages the power of <span className="font-bold">AO protocol</span> to create autonomous agents that monitor price differences between DEXes in real-time.
                                     </p>
                                 </div>
                                 
@@ -126,7 +126,7 @@ export const AboutPage = () => {
                                     className="object-cover"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-center p-6">
-                                    <span className="text-white text-lg font-medium">DeltaFi Team</span>
+                                    {/* <span className="text-white text-lg font-medium">DeltaFi Team</span> */}
                                 </div>
                             </div>
 
