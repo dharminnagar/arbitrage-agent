@@ -3338,6 +3338,15 @@ form-data@^4.0.0:
     es-set-tostringtag "^2.1.0"
     mime-types "^2.1.12"
 
+framer-motion@^12.10.2:
+  version "12.10.2"
+  resolved "https://registry.yarnpkg.com/framer-motion/-/framer-motion-12.10.2.tgz#6a0170612febb05d44cd3c4598631c0708e137c7"
+  integrity sha512-1Y1xDu6LD2geGlpmBAEdkO7SVsFtum6r1eUsKSAClOEX3acDb8dovOvf8TRduY54z1x0FiKFPxCrUAc3u84row==
+  dependencies:
+    motion-dom "^12.10.2"
+    motion-utils "^12.9.4"
+    tslib "^2.4.0"
+
 framer-motion@^12.9.2:
   version "12.9.2"
   resolved "https://registry.npmjs.org/framer-motion/-/framer-motion-12.9.2.tgz"
@@ -4201,6 +4210,13 @@ mnemonist@^0.39.8:
   dependencies:
     obliterator "^2.0.1"
 
+motion-dom@^12.10.2:
+  version "12.10.2"
+  resolved "https://registry.yarnpkg.com/motion-dom/-/motion-dom-12.10.2.tgz#fcab5aad186327e4d3961c528fc88bfbaa1cbda1"
+  integrity sha512-482quPO/wVLghG9AHq5kEWBhqv0a5UN+Ap7LzgkpURM9SqTxOuuSQJsVWDqa/0WMWIDClXN3f71Reg7V21HYqA==
+  dependencies:
+    motion-utils "^12.9.4"
+
 motion-dom@^12.9.1:
   version "12.9.1"
   resolved "https://registry.npmjs.org/motion-dom/-/motion-dom-12.9.1.tgz"
@@ -4212,6 +4228,11 @@ motion-utils@^12.8.3:
   version "12.8.3"
   resolved "https://registry.npmjs.org/motion-utils/-/motion-utils-12.8.3.tgz"
   integrity sha512-GYVauZEbca8/zOhEiYOY9/uJeedYQld6co/GJFKOy//0c/4lDqk0zB549sBYqqV2iMuX+uHrY1E5zd8A2L+1Lw==
+
+motion-utils@^12.9.4:
+  version "12.9.4"
+  resolved "https://registry.yarnpkg.com/motion-utils/-/motion-utils-12.9.4.tgz#9d5a45a19971e20059911526d7af2217c5158fa2"
+  integrity sha512-BW3I65zeM76CMsfh3kHid9ansEJk9Qvl+K5cu4DVHKGsI52n76OJ4z2CUJUV+Mn3uEP9k1JJA3tClG0ggSrRcg==
 
 motion@^12.6.3:
   version "12.9.2"
